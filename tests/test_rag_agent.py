@@ -395,6 +395,100 @@ def test_generate_rejects_empty_results() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Minimal-sufficient-evidence prompt policy (Iteration 10)
+#
+# These check for focused key phrases, not one large exact paragraph, so
+# harmless future wording tweaks won't make them brittle -- each targets
+# one specific policy statement.
+# ---------------------------------------------------------------------------
+
+
+def _sent_instructions(client: FakeOpenAIClient) -> str:
+    """The instructions sent to the model, with whitespace collapsed so
+    assertions are not sensitive to incidental line-wrapping in the
+    source text."""
+    return " ".join(client.responses.calls[0]["instructions"].split())
+
+
+def test_instructions_require_direct_concise_answers_without_extra_context() -> None:
+    client = FakeOpenAIClient(
+        parsed=GroundingDecision(answerable=True, answer="Respuesta.", evidence_ids=["E1"])
+    )
+    OpenAIGroundedGenerator(client=client).generate("¿Pregunta?", [make_result()])
+
+    instructions = _sent_instructions(client)
+
+    assert "responde de forma directa y concisa" in instructions.lower()
+    assert "información de fondo opcional" in instructions.lower()
+
+
+def test_instructions_require_minimum_sufficient_evidence_set() -> None:
+    client = FakeOpenAIClient(
+        parsed=GroundingDecision(answerable=True, answer="Respuesta.", evidence_ids=["E1"])
+    )
+    OpenAIGroundedGenerator(client=client).generate("¿Pregunta?", [make_result()])
+
+    instructions = _sent_instructions(client)
+
+    assert "evidencia mínima suficiente" in instructions.lower()
+    assert "conjunto de evidencia más pequeño que sea suficiente" in instructions.lower()
+
+
+def test_instructions_forbid_citing_merely_related_or_background_evidence() -> None:
+    client = FakeOpenAIClient(
+        parsed=GroundingDecision(answerable=True, answer="Respuesta.", evidence_ids=["E1"])
+    )
+    OpenAIGroundedGenerator(client=client).generate("¿Pregunta?", [make_result()])
+
+    instructions = _sent_instructions(client).lower()
+
+    assert "está relacionado con el tema de la pregunta" in instructions
+    assert "contexto de fondo opcional" in instructions
+    assert "describe el producto de forma general" in instructions
+    assert "posición alta en la recuperación" in instructions
+
+
+def test_instructions_prefer_single_citation_when_sufficient() -> None:
+    client = FakeOpenAIClient(
+        parsed=GroundingDecision(answerable=True, answer="Respuesta.", evidence_ids=["E1"])
+    )
+    OpenAIGroundedGenerator(client=client).generate("¿Pregunta?", [make_result()])
+
+    instructions = _sent_instructions(client).lower()
+
+    assert "único elemento de evidencia respalda por completo la respuesta" in instructions
+    assert "cita únicamente ese elemento" in instructions
+
+
+def test_instructions_allow_multiple_evidence_ids_only_when_necessary() -> None:
+    client = FakeOpenAIClient(
+        parsed=GroundingDecision(answerable=True, answer="Respuesta.", evidence_ids=["E1"])
+    )
+    OpenAIGroundedGenerator(client=client).generate("¿Pregunta?", [make_result()])
+
+    instructions = _sent_instructions(client).lower()
+
+    assert "varios evidence_ids solo cuando" in instructions
+    assert "realmente necesarios" in instructions
+
+
+def test_instructions_still_forbid_external_knowledge_and_inference() -> None:
+    """Preserve pre-existing safeguards: this iteration must not weaken them."""
+    client = FakeOpenAIClient(
+        parsed=GroundingDecision(answerable=True, answer="Respuesta.", evidence_ids=["E1"])
+    )
+    OpenAIGroundedGenerator(client=client).generate("¿Pregunta?", [make_result()])
+
+    instructions = _sent_instructions(client).lower()
+
+    assert "no utilices conocimiento externo" in instructions
+    assert "nunca infieras" in instructions
+    assert "ausencia de evidencia en una respuesta factual" in instructions
+    assert "responde en español de forma predeterminada" in instructions
+    assert "respuesta en inglés" in instructions
+
+
+# ---------------------------------------------------------------------------
 # Grounding validation
 # ---------------------------------------------------------------------------
 
@@ -661,6 +755,48 @@ def test_agent_inconsistent_decision_raises_error_via_validation() -> None:
 
     with pytest.raises(RAGGenerationError):
         agent.answer("¿Pregunta?")
+
+
+def test_minimal_evidence_scenario_maps_to_single_citation() -> None:
+    """Not a proof of model quality: only verifies that when a decision
+    correctly cites just the one evidence item that actually supports the
+    fact (E1) and ignores generic background evidence (E2), the pipeline
+    maps that decision to exactly one SourceCitation."""
+    specific_result = make_result(
+        chunk_id="05_cuentas_y_acceso.md::chunk-005",
+        source="05_cuentas_y_acceso.md",
+        title="Cuentas y acceso",
+        section="Recuperación de contraseña",
+        text="El enlace de restablecimiento es válido durante 1 hora.",
+    )
+    background_result = make_result(
+        chunk_id="09_preguntas_frecuentes.md::chunk-002",
+        source="09_preguntas_frecuentes.md",
+        title="Preguntas frecuentes",
+        section="¿Qué es Nubira?",
+        text="Nubira es una plataforma de gestión de proyectos.",
+    )
+    decision = GroundingDecision(
+        answerable=True,
+        answer="El enlace de restablecimiento es válido durante 1 hora.",
+        evidence_ids=["E1"],
+    )
+    agent, _, generator = _make_agent(
+        results=[specific_result, background_result], decision=decision
+    )
+
+    answer = agent.answer("¿Cuánto tiempo dura el enlace de restablecimiento de contraseña?")
+
+    assert answer.citations == (
+        SourceCitation(
+            source="05_cuentas_y_acceso.md",
+            title="Cuentas y acceso",
+            section="Recuperación de contraseña",
+        ),
+    )
+    # Both results were still passed to the generator -- it is the
+    # (faked) decision, not any Python pruning, that limits citations.
+    assert generator.calls[0][1] == [specific_result, background_result]
 
 
 # ---------------------------------------------------------------------------
