@@ -42,19 +42,25 @@ steps are implemented yet — only the project scaffold exists.
 
 ## Current Status
 
-The knowledge base, document loading, chunking, OpenAI embedding
-integration, and cosine-similarity semantic retrieval are implemented:
-`rag/document_loader.py` loads the Markdown files in `knowledge/` into
-`KnowledgeDocument` objects, `rag/chunker.py` splits them into
-section-aware `KnowledgeChunk` objects, `rag/embeddings.py` turns
-chunks into `EmbeddedChunk` objects via the OpenAI embeddings API, and
-`rag/retriever.py` ranks that corpus against a query with
-`SemanticRetriever`. A transparent retrieval-evaluation framework also
-exists under `evals/`, measuring Hit@1, Hit@3, and MRR@5 against a
-hand-curated set of questions; intentionally unsupported questions are
-tracked as diagnostics rather than scored as retrieval failures. The
-real evaluation has not been run yet, so no scores are reported here.
-RAG answer generation is not implemented.
+Document loading, deterministic Markdown-aware chunking, OpenAI
+multilingual embeddings, cosine-similarity semantic retrieval, and a
+transparent retrieval-evaluation framework (`evals/`) are implemented.
+The real retrieval benchmark reports **Hit@1 = 100%, Hit@3 = 100%,
+MRR@5 = 1.00** over 16 curated answerable queries, with 4 unsupported
+queries tracked separately as diagnostics. These metrics evaluate
+**retrieval only** — whether the right evidence is found — not final
+answer quality.
+
+Grounded answer generation is also implemented: `agent/rag_agent.py`
+retrieves evidence with `SemanticRetriever`, asks the generation model
+(via the OpenAI Responses API, structured Pydantic output) whether
+that evidence is sufficient, independently validates the model's
+decision in Python, and returns deterministic citations built only
+from real chunk metadata. Unsupported questions — including ones where
+retrieval returns topically related, high-scoring but insufficient
+evidence — receive an explicit, controlled fallback message instead of
+a model-generated guess. Answer-generation quality has not been
+evaluated yet, and no claim of zero hallucinations is made.
 
 ## Project Structure
 
@@ -68,7 +74,8 @@ rag-knowledge-agent/
 │   ├── embeddings.py        # Turns KnowledgeChunks into EmbeddedChunk objects via the OpenAI API
 │   └── retriever.py         # Ranks EmbeddedChunks against a query via SemanticRetriever
 ├── agent/
-│   └── __init__.py          # Future grounded RAG agent
+│   ├── __init__.py
+│   └── rag_agent.py         # RAGAgent: grounded answer generation via OpenAIGroundedGenerator
 ├── knowledge/
 │   └── .gitkeep              # Will hold the fictional Spanish knowledge base
 ├── evals/

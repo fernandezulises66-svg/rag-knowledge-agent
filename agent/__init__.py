@@ -1,5 +1,6 @@
 """Agent package.
 
-Will contain the grounded RAG agent that combines retrieval with
-answer generation. Implementation is added in a later iteration.
+Contains `RAGAgent`, which combines `SemanticRetriever` retrieval with
+`OpenAIGroundedGenerator` structured answer generation. See
+`agent.rag_agent` for the implementation.
 """
