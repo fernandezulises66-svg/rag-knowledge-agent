@@ -42,14 +42,15 @@ steps are implemented yet — only the project scaffold exists.
 
 ## Current Status
 
-The knowledge base, document loading, chunking, and OpenAI embedding
-integration are implemented: `rag/document_loader.py` loads the
-Markdown files in `knowledge/` into `KnowledgeDocument` objects,
-`rag/chunker.py` splits them into section-aware `KnowledgeChunk`
-objects, and `rag/embeddings.py` turns chunks into `EmbeddedChunk`
-objects via the OpenAI embeddings API. Vector search, retrieval, and
-RAG answer generation are not implemented yet — embeddings are not
-yet stored or searched.
+The knowledge base, document loading, chunking, OpenAI embedding
+integration, and cosine-similarity semantic retrieval are implemented:
+`rag/document_loader.py` loads the Markdown files in `knowledge/` into
+`KnowledgeDocument` objects, `rag/chunker.py` splits them into
+section-aware `KnowledgeChunk` objects, `rag/embeddings.py` turns
+chunks into `EmbeddedChunk` objects via the OpenAI embeddings API, and
+`rag/retriever.py` ranks that corpus against a query with
+`SemanticRetriever`. Retrieval quality has not been evaluated yet, and
+RAG answer generation is not implemented.
 
 ## Project Structure
 
@@ -61,7 +62,7 @@ rag-knowledge-agent/
 │   ├── document_loader.py   # Loads Markdown files from knowledge/ into KnowledgeDocument objects
 │   ├── chunker.py           # Splits KnowledgeDocuments into section-aware KnowledgeChunk objects
 │   ├── embeddings.py        # Turns KnowledgeChunks into EmbeddedChunk objects via the OpenAI API
-│   └── retriever.py         # Future semantic retrieval
+│   └── retriever.py         # Ranks EmbeddedChunks against a query via SemanticRetriever
 ├── agent/
 │   └── __init__.py          # Future grounded RAG agent
 ├── knowledge/
