@@ -59,8 +59,18 @@ decision in Python, and returns deterministic citations built only
 from real chunk metadata. Unsupported questions — including ones where
 retrieval returns topically related, high-scoring but insufficient
 evidence — receive an explicit, controlled fallback message instead of
-a model-generated guess. Answer-generation quality has not been
-evaluated yet, and no claim of zero hallucinations is made.
+a model-generated guess.
+
+A second, separate evaluation framework (also under `evals/`) checks
+the FINAL grounded answers — not just retrieval — using transparent,
+rule-based checks: is the question correctly marked answerable, does
+the answer mention the actually-documented facts (via accent/case-
+insensitive alternative-text matching), is every returned citation a
+genuinely valid evidence location, and do unsupported questions get
+exactly the controlled refusal with zero citations. No LLM judge and
+no semantic quality score are used. The real answer evaluation has not
+been run yet, so no answer-quality scores are reported here, and no
+claim of zero hallucinations or perfect RAG accuracy is made.
 
 ## Project Structure
 
@@ -83,7 +93,11 @@ rag-knowledge-agent/
 │   ├── retrieval_cases.py   # Hand-curated retrieval evaluation dataset
 │   ├── retrieval_metrics.py # Hit@K / reciprocal-rank pure functions
 │   ├── retrieval_runner.py  # Runs cases against a SemanticRetriever, aggregates metrics
-│   └── run_retrieval_evals.py # CLI: python -m evals.run_retrieval_evals (real OpenAI calls)
+│   ├── run_retrieval_evals.py # CLI: python -m evals.run_retrieval_evals (real OpenAI calls)
+│   ├── answer_cases.py      # Same 20 questions, with required facts + acceptable citations
+│   ├── answer_checks.py     # normalize_text / fact / citation rule-based checks
+│   ├── answer_runner.py     # Runs cases against a RAGAgent, aggregates answer-quality metrics
+│   └── run_answer_evals.py  # CLI: python -m evals.run_answer_evals (real OpenAI calls)
 ├── tests/
 │   └── __init__.py          # pytest suite (no real OpenAI calls)
 ├── .env.example
