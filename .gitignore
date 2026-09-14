@@ -1,0 +1,41 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables and secrets
+.env
+
+# IDE folders/files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# pytest caches
+.pytest_cache/
+
+# Coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Streamlit local secrets
+.streamlit/secrets.toml
+
+# Generated embedding/vector artifacts
+*.index
+*.faiss
+embeddings_cache/
+vector_store/
