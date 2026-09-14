@@ -42,11 +42,12 @@ steps are implemented yet — only the project scaffold exists.
 
 ## Current Status
 
-The knowledge base and the document-loading layer are implemented:
-`rag/document_loader.py` loads the Markdown files in `knowledge/` into
-structured, tested `KnowledgeDocument` objects. Chunking, embeddings,
-vector search, retrieval, and RAG agent functionality are not
-implemented yet.
+The knowledge base, document-loading layer, and chunking layer are
+implemented: `rag/document_loader.py` loads the Markdown files in
+`knowledge/` into structured `KnowledgeDocument` objects, and
+`rag/chunker.py` splits them into section-aware `KnowledgeChunk`
+objects. Embeddings, vector search, retrieval, and RAG agent
+functionality are not implemented yet.
 
 ## Project Structure
 
@@ -56,7 +57,7 @@ rag-knowledge-agent/
 ├── rag/
 │   ├── __init__.py
 │   ├── document_loader.py   # Loads Markdown files from knowledge/ into KnowledgeDocument objects
-│   ├── chunker.py           # Future deterministic text chunking
+│   ├── chunker.py           # Splits KnowledgeDocuments into section-aware KnowledgeChunk objects
 │   ├── embeddings.py        # Future embedding generation abstraction
 │   └── retriever.py         # Future semantic retrieval
 ├── agent/
