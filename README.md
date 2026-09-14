@@ -49,7 +49,11 @@ integration, and cosine-similarity semantic retrieval are implemented:
 section-aware `KnowledgeChunk` objects, `rag/embeddings.py` turns
 chunks into `EmbeddedChunk` objects via the OpenAI embeddings API, and
 `rag/retriever.py` ranks that corpus against a query with
-`SemanticRetriever`. Retrieval quality has not been evaluated yet, and
+`SemanticRetriever`. A transparent retrieval-evaluation framework also
+exists under `evals/`, measuring Hit@1, Hit@3, and MRR@5 against a
+hand-curated set of questions; intentionally unsupported questions are
+tracked as diagnostics rather than scored as retrieval failures. The
+real evaluation has not been run yet, so no scores are reported here.
 RAG answer generation is not implemented.
 
 ## Project Structure
@@ -67,6 +71,12 @@ rag-knowledge-agent/
 │   └── __init__.py          # Future grounded RAG agent
 ├── knowledge/
 │   └── .gitkeep              # Will hold the fictional Spanish knowledge base
+├── evals/
+│   ├── __init__.py
+│   ├── retrieval_cases.py   # Hand-curated retrieval evaluation dataset
+│   ├── retrieval_metrics.py # Hit@K / reciprocal-rank pure functions
+│   ├── retrieval_runner.py  # Runs cases against a SemanticRetriever, aggregates metrics
+│   └── run_retrieval_evals.py # CLI: python -m evals.run_retrieval_evals (real OpenAI calls)
 ├── tests/
 │   └── __init__.py          # pytest suite (no real OpenAI calls)
 ├── .env.example
