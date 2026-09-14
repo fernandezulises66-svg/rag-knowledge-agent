@@ -42,10 +42,11 @@ steps are implemented yet — only the project scaffold exists.
 
 ## Current Status
 
-This project is in its **initial scaffold stage**. The folder structure and
-placeholder modules exist to establish the intended architecture, but no
-document ingestion, chunking, embeddings, vector search, retrieval, or RAG
-agent functionality has been implemented yet.
+The knowledge base and the document-loading layer are implemented:
+`rag/document_loader.py` loads the Markdown files in `knowledge/` into
+structured, tested `KnowledgeDocument` objects. Chunking, embeddings,
+vector search, retrieval, and RAG agent functionality are not
+implemented yet.
 
 ## Project Structure
 
@@ -54,7 +55,7 @@ rag-knowledge-agent/
 ├── app.py                   # Placeholder CLI entry point
 ├── rag/
 │   ├── __init__.py
-│   ├── document_loader.py   # Future document loading + metadata extraction
+│   ├── document_loader.py   # Loads Markdown files from knowledge/ into KnowledgeDocument objects
 │   ├── chunker.py           # Future deterministic text chunking
 │   ├── embeddings.py        # Future embedding generation abstraction
 │   └── retriever.py         # Future semantic retrieval
