@@ -10,7 +10,7 @@ Retrieval-Augmented Generation (RAG) assistant can let users ask
 natural-language questions and receive answers grounded in a controlled,
 internal knowledge base, with visible sources.
 
-## Planned RAG Flow
+## RAG Flow
 
 ```
 User question
@@ -20,15 +20,16 @@ User question
   → source citations
 ```
 
-This is the **planned** architecture. As of this iteration, none of these
-steps are implemented yet — only the project scaffold exists.
+This flow is implemented end to end, from the Markdown knowledge base through
+a Streamlit UI. See **Current Status** and **Evaluation Results** below for
+what has actually been built and measured.
 
-## Planned Tech Stack
+## Tech Stack
 
 - Python 3.13+
-- OpenAI API
-- Embeddings
-- Vector search
+- OpenAI API (embeddings + Responses API structured output)
+- Retrieval-Augmented Generation (RAG)
+- Cosine-similarity vector search
 - Streamlit
 - pytest
 
@@ -43,40 +44,66 @@ steps are implemented yet — only the project scaffold exists.
 ## Current Status
 
 Document loading, deterministic Markdown-aware chunking, OpenAI
-multilingual embeddings, cosine-similarity semantic retrieval, and a
-transparent retrieval-evaluation framework (`evals/`) are implemented.
-The real retrieval benchmark reports **Hit@1 = 100%, Hit@3 = 100%,
-MRR@5 = 1.00** over 16 curated answerable queries, with 4 unsupported
-queries tracked separately as diagnostics. These metrics evaluate
-**retrieval only** — whether the right evidence is found — not final
-answer quality.
+multilingual embeddings, cosine-similarity semantic retrieval, grounded
+structured answer generation, two transparent evaluation frameworks, and a
+Streamlit UI are all implemented.
 
-Grounded answer generation is also implemented: `agent/rag_agent.py`
-retrieves evidence with `SemanticRetriever`, asks the generation model
-(via the OpenAI Responses API, structured Pydantic output) whether
-that evidence is sufficient, independently validates the model's
-decision in Python, and returns deterministic citations built only
-from real chunk metadata. Unsupported questions — including ones where
+`agent/rag_agent.py` retrieves evidence with `SemanticRetriever`, asks the
+generation model (via the OpenAI Responses API, structured Pydantic output)
+whether that evidence is sufficient, independently validates the model's
+decision in Python, and returns deterministic citations built only from
+real chunk metadata. Unsupported questions — including ones where
 retrieval returns topically related, high-scoring but insufficient
-evidence — receive an explicit, controlled fallback message instead of
-a model-generated guess.
+evidence — receive an explicit, controlled fallback message instead of a
+model-generated guess.
 
-A second, separate evaluation framework (also under `evals/`) checks
-the FINAL grounded answers — not just retrieval — using transparent,
-rule-based checks: is the question correctly marked answerable, does
-the answer mention the actually-documented facts (via accent/case-
-insensitive alternative-text matching), is every returned citation a
-genuinely valid evidence location, and do unsupported questions get
-exactly the controlled refusal with zero citations. No LLM judge and
-no semantic quality score are used. The real answer evaluation has not
-been run yet, so no answer-quality scores are reported here, and no
-claim of zero hallucinations or perfect RAG accuracy is made.
+Two separate evaluation frameworks live under `evals/`: one measures
+**retrieval** quality (Hit@K, MRR), the other measures the **final grounded
+answer** (answerability, factual grounding via accent/case-insensitive
+alternative-text matching, citation validity, controlled refusal) using
+transparent, rule-based checks only — no LLM judge, no semantic quality
+score. See **Evaluation Results** below; these are curated-benchmark
+results, not claims of general model accuracy, zero hallucinations, or
+perfect RAG accuracy.
+
+`streamlit_app.py` provides a Spanish-first UI around the same public
+`RAGAgent`: it shows the grounded answer, its source citations, and an
+expandable retrieval-observability panel (retrieved chunks and their
+semantic-similarity scores), plus lightweight per-session query history.
+It adds no new retrieval, chunking, embedding, or grounding behavior.
+
+## Evaluation Results
+
+These results apply only to this project's own small, hand-curated
+benchmark of 20 questions against its fictional knowledge base — they are
+**not** a measure of general model accuracy.
+
+### Retrieval evaluation
+
+- 16 answerable queries
+- Hit@1 = 100%
+- Hit@3 = 100%
+- MRR@5 = 1.00
+- 4 unsupported queries tracked separately as diagnostics
+
+### Grounded answer evaluation
+
+- 20 curated cases total (16 answerable + 4 unsupported)
+- Answerability accuracy = 100%
+- Fact check pass rate = 100%
+- Citation check pass rate = 100%
+- Unsupported refusal rate = 100%
+- Overall pass rate = 100%
+
+Run `python -m evals.run_retrieval_evals` or `python -m evals.run_answer_evals`
+to reproduce these (real OpenAI API calls; never run by `pytest`).
 
 ## Project Structure
 
 ```
 rag-knowledge-agent/
-├── app.py                   # Placeholder CLI entry point
+├── app.py                   # Placeholder CLI entry point (unrelated to the Streamlit UI)
+├── streamlit_app.py         # Spanish-first Streamlit UI around the public RAGAgent
 ├── rag/
 │   ├── __init__.py
 │   ├── document_loader.py   # Loads Markdown files from knowledge/ into KnowledgeDocument objects
@@ -86,8 +113,7 @@ rag-knowledge-agent/
 ├── agent/
 │   ├── __init__.py
 │   └── rag_agent.py         # RAGAgent: grounded answer generation via OpenAIGroundedGenerator
-├── knowledge/
-│   └── .gitkeep              # Will hold the fictional Spanish knowledge base
+├── knowledge/                # Fictional Spanish knowledge base (9 Markdown documents)
 ├── evals/
 │   ├── __init__.py
 │   ├── retrieval_cases.py   # Hand-curated retrieval evaluation dataset
@@ -98,8 +124,7 @@ rag-knowledge-agent/
 │   ├── answer_checks.py     # normalize_text / fact / citation rule-based checks
 │   ├── answer_runner.py     # Runs cases against a RAGAgent, aggregates answer-quality metrics
 │   └── run_answer_evals.py  # CLI: python -m evals.run_answer_evals (real OpenAI calls)
-├── tests/
-│   └── __init__.py          # pytest suite (no real OpenAI calls)
+├── tests/                    # pytest suite (no real OpenAI calls)
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
@@ -114,6 +139,18 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Copy `.env.example` to `.env` when environment variables are needed in a
-future iteration. The OpenAI API is not used yet, so no API key is required
-at this stage.
+Copy `.env.example` to `.env` and set `OPENAI_API_KEY` before running the
+Streamlit app or either evaluation CLI — they make real OpenAI API calls
+(embeddings and/or the Responses API). `pytest` never requires a real key,
+since every test uses a fake/injected client.
+
+## Running the UI
+
+```powershell
+streamlit run streamlit_app.py
+```
+
+On first run, `build_rag_agent()` loads and embeds the knowledge base once
+(one real OpenAI embeddings request for the whole corpus) and caches the
+resulting pipeline via `st.cache_resource`, so it is not rebuilt on every
+rerun. No deployment is set up yet — this runs locally only.
