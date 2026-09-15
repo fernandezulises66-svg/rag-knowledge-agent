@@ -9,10 +9,10 @@ transparent, rule-based evaluation benchmarks and a Streamlit interface.
 
 ## Demo
 
-The app currently runs **locally only** — no live deployment exists yet.
+**Live Demo:**
+https://ulises-rag-knowledge-agent.streamlit.app/
 
-**Live demo:** _not yet deployed. A Streamlit Community Cloud link will be
-added here once the app is deployed._
+The app is deployed on Streamlit Community Cloud and can also be run locally:
 
 ```powershell
 streamlit run streamlit_app.py
@@ -327,6 +327,9 @@ payment-method evidence (see the unsupported-answer screenshot above).
   no real credentials.
 - `.streamlit/secrets.toml`, if ever created locally, is also gitignored and
   must never contain committed credentials.
+- The deployed app's API key and model names are configured as Streamlit
+  Community Cloud secrets, set directly in the platform's dashboard — never
+  committed to GitHub.
 - No confidential or real-company documentation is used anywhere in this
   repository; the entire knowledge base is fictional.
 
@@ -349,15 +352,16 @@ payment-method evidence (see the unsupported-answer screenshot above).
 - Authentication and rate limiting for a public deployment.
 - Production-grade observability (latency, cost, and error tracking).
 
-## Deployment Preparation
+## Deployment
 
-This repository is prepared for deployment to **Streamlit Community Cloud**,
-but has **not** been deployed yet.
+This project is deployed on **Streamlit Community Cloud**.
 
 - **Platform:** Streamlit Community Cloud
+- **Status:** deployed
 - **Entry point:** `streamlit_app.py`
+- **Public URL:** https://ulises-rag-knowledge-agent.streamlit.app/
 - **Required Streamlit secrets** (set in the platform's dashboard, never
-  committed):
+  committed to GitHub):
 
   ```toml
   OPENAI_API_KEY = "..."
